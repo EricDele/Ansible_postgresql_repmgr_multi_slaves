@@ -1,0 +1,89 @@
+---
+
+# - name: Check requested variables.
+#   assert: { that: " {{item}} is defined" }
+#   with_items:
+#     - postgresql_version_supported
+#     - postgresql_version
+#     - postgresql_repos
+#     - postgresql_package_name_prefix
+#     - postgresql_package_name_suffix_list
+#     - postgresql_package_name_specific_list
+#     - postgresql_directories
+
+- name: check supported version.
+  fail: 
+    msg: "The postgresql version {{postgresql_version}} is not supported by this role"
+  when:  postgresql_version not in postgresql_version_supported
+
+- name: Install pgdg repos and epel
+  become: yes
+  yum: 
+    name:  "{{item}}"
+    state: installed
+  with_items:  "{{postgresql_repos}}"
+
+- name: Installing PG binaries
+  become: yes
+  yum: 
+    name: "postgresql{{postgresql_version|replace('.','')}}"  
+    state: latest
+
+- name: Installing PG packages
+  become: yes
+  yum: 
+    name: "{{postgresql_package_name_prefix}}{{postgresql_version|replace('.','')}}-{{item}}"    
+    state: latest
+  with_items: "{{postgresql_package_name_suffix_list}}"
+
+- name: Installing PG specific packages
+  become: yes
+  yum: 
+    name: "{{item}}"
+    state: latest
+  with_items: "{{postgresql_package_name_specific_list}}"
+
+- name: Ensure directories are presents
+  become: yes
+  file: 
+    group: "{{item.group}}"
+    mode: "{{item.mode}}"
+    owner: "{{item.owner}}"
+    path: "{{item.path}}"
+    state: "{{item.state}}"
+  with_items:  "{{postgresql_directories}}"
+
+- name: Enable Postgresql service module.
+  become: yes
+  service: 
+    enabled: yes  
+    name: "postgresql-{{postgresql_version}}.service"
+
+- name: Generate the systemd file.
+  become: yes
+  template: 
+    dest: "/lib/systemd/system/postgresql-{{ postgresql_version }}.service"
+    mode:  0644
+    src:  systemd-postgres.service.j2
+
+- name: Reload the systemd daemon after changes
+  become: yes
+  systemd: 
+    name: "postgresql-{{ postgresql_version }}.service"
+    daemon_reload: yes
+    
+- name: Allowing postgresl service in Firewalld.
+  become: yes
+  firewalld: 
+    immediate: True
+    permanent: True
+    service: postgresql
+    state: enabled
+
+- name: Allowing postgresl port in Firewalld.
+  become: yes
+  firewalld: 
+    immediate: True
+    permanent: True
+    port: "{{ postgresql_port }}/tcp"
+    state: enabled

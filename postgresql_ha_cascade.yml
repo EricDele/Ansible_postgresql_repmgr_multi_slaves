@@ -1,0 +1,5 @@
+- hosts: cluster_ha
+  gather_facts: yes
+  roles:
+  - { role: role_pgsql_ha_cascade
+    }  

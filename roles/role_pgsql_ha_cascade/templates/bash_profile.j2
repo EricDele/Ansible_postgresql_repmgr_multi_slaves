@@ -1,0 +1,9 @@
+export PATH=/usr/pgsql-{{ postgresql_version }}/bin:${PATH}
+export LIBRARY_PATH=/usr/pgsql-{{ postgresql_version }}/lib:${LIBRARY_PATH}
+export BASE={{postgresql_root_dir}}
+export PGPORT={{postgresql_port}}
+export PGDATA={{postgresql_data_dir}}
+export PGLOG={{postgresql_logs_dir}}
+
+export PS1=${LOGNAME}'@'$(hostname --short)':${PWD} > '
+set -o vi

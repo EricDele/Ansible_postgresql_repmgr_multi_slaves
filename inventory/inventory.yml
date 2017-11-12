@@ -1,0 +1,22 @@
+[cluster_ha]
+vm1 postgresql_node_num=1
+vm2 postgresql_node_num=2
+vm3 postgresql_node_num=3
+vm4 postgresql_node_num=4
+
+[cluster_ha_master]
+vm1
+
+[cluster_ha_slaves]
+vm2
+vm3
+vm4
+
+[cluster_ha_dc1]
+vm1
+vm2 postgresql_upstream_node_num=1
+
+[cluster_ha_dc2]
+vm3 postgresql_upstream_node_num=2
+vm4 postgresql_upstream_node_num=3
+

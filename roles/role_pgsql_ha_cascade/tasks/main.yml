@@ -1,0 +1,27 @@
+---
+
+- name: Create User, Group and ssh_keys
+  include: create_postgres_user.yml
+  tags: [postgresql_create_user]
+
+- name: Install Postgresql instances
+  include: create_postgresql.yml
+  tags: [postgresql_create_instances]
+
+- name: Install Repmgr
+  include: create_repmgr.yml
+  tags: [postgresql_create_repmgr]
+
+- name: Configure Postgresql instances
+  include: configure_postgresql.yml
+  tags: [postgresql_configure]
+
+- name: Configure Repmgr Master
+  include: configure_repmgr_master.yml
+  tags: [postgresql_configure_repmgr_master]
+
+- name: Configure Repmgr Slaves
+  include: configure_repmgr_slaves.yml
+  tags: [postgresql_configure_repmgr_slaves]
+
+

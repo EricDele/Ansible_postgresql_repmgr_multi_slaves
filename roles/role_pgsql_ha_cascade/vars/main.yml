@@ -1,0 +1,41 @@
+---
+# vars for installing binaries
+postgresql_username: "postgres"
+postgresql_userid: "26"
+postgresql_groupname: "postgres"
+postgresql_groupid: "26"
+postgresql_user_shell: "/bin/bash"
+postgresql_version_supported: ["9.5","9.6"]
+postgresql_repos: 
+  - "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+  - "https://download.postgresql.org/pub/repos/yum/9.6/redhat/rhel-7-x86_64/pgdg-centos96-9.6-3.noarch.rpm"
+  - "https://download.postgresql.org/pub/repos/yum/9.5/redhat/rhel-7-x86_64/pgdg-centos95-9.5-3.noarch.rpm"
+postgresql_package_name_prefix: "postgresql"
+postgresql_package_name_suffix_list: ["contrib","devel","libs","plperl","plpython","pltcl","test"]
+postgresql_package_name_specific_list: ["python-psycopg2"]
+postgresql_bases_dir: "/bases/pgsql"
+postgresql_root_dir: "{{postgresql_bases_dir}}/{{postgresql_instance_name}}"
+postgresql_data_dir: "{{postgresql_bases_dir}}/{{postgresql_instance_name}}/data"
+postgresql_security_dir: "{{postgresql_bases_dir}}/{{postgresql_instance_name}}/security"
+postgresql_wal_dir: "{{postgresql_bases_dir}}/{{postgresql_instance_name}}/wal"
+postgresql_var_dir: "{{postgresql_bases_dir}}/{{postgresql_instance_name}}/var"
+postgresql_logs_dir: "{{postgresql_bases_dir}}/{{postgresql_instance_name}}/var/logs"
+postgresql_repmgr_sql_dir: "{{postgresql_bases_dir}}/{{postgresql_instance_name}}/repmgr/sql"
+postgresql_repmgr_sh_dir: "{{postgresql_bases_dir}}/{{postgresql_instance_name}}/repmgr/sh"
+postgresql_repmgr_log_dir: "/var/log/repmgr"
+postgresql_repmgr_conf_file: "/etc/repmgr/{{ postgresql_version }}/repmgr.conf"
+postgresql_repmgr_dbname: "repmgr"
+postgresql_repmgr_user: "repmgr"
+
+postgresql_directories:
+  - {path: "{{postgresql_bases_dir}}", owner: "{{postgresql_username}}", group: "{{postgresql_groupname}}", mode: "0755", state: "directory" }
+  - {path: "{{postgresql_root_dir}}", owner: "{{postgresql_username}}", group: "{{postgresql_groupname}}", mode: "0755", state: "directory" }
+  - {path: "{{postgresql_data_dir}}", owner: "{{postgresql_username}}", group: "{{postgresql_groupname}}", mode: "0700", state: "directory" }
+  - {path: "{{postgresql_security_dir}}", owner: "{{postgresql_username}}", group: "{{postgresql_groupname}}", mode: "0750", state: "directory" }  
+  - {path: "{{postgresql_wal_dir}}", owner: "{{postgresql_username}}", group: "{{postgresql_groupname}}", mode: "0700", state: "directory" }    
+  - {path: "{{postgresql_var_dir}}", owner: "{{postgresql_username}}", group: "{{postgresql_groupname}}", mode: "0755", state: "directory" }  
+  - {path: "{{postgresql_logs_dir}}", owner: "{{postgresql_username}}", group: "{{postgresql_groupname}}", mode: "0755", state: "directory" }  
+
+# set to manage if we are during a phase of creating the cluster or no during repmgr.conf file
+# this is for the upstream_node setting
+postgresql_cluster_creation: False

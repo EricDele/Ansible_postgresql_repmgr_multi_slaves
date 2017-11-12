@@ -1,0 +1,120 @@
+---
+
+# - name: Check requested variables.
+#   assert: {that: " {{ item }} is defined"}
+#   with_items:
+#     - postgresql_username
+#     - postgresql_userid
+#     - postgresql_groupname
+#     - postgresql_groupid
+#     - postgresql_user_shell
+
+- name: Ensure all vm knows each others
+  become: yes
+  copy: 
+    dest: /etc/hosts
+    group: root  
+    mode: "0644"  
+    owner: root
+    src: hosts
+
+- name: Create postgresql group.
+  become: yes
+  group: 
+    gid: "{{postgresql_groupid}}"
+    name: "{{postgresql_groupname}}"  
+    state: present
+
+- name: Check if the postgres group is allowed to use ssh.
+  become: yes
+  shell: grep -i "^allowgroups " /etc/ssh/sshd_config |grep "{{postgresql_groupname}}"
+  changed_when: false
+  failed_when: false
+  register: postgres_group_grep_sshd_config
+
+- name: Ensure that postgres group is present in sshd_config file.
+  become: yes
+  lineinfile: 
+    backrefs: yes
+    backup: yes
+    dest:  /etc/ssh/sshd_config
+    regexp:  '(allowgroups .*)$'
+    line:  '\1 {{postgresql_groupname}}'
+    state: present
+    validate: /sbin/sshd -f % -t
+  when:  postgres_group_grep_sshd_config.rc == 1
+  notify:
+    - "reload sshd"
+
+- name: Ensure postgresql user home could be created
+  become: yes
+  file: 
+    mode: "0755"
+    path: "{{postgresql_root_dir}}"
+    state: directory
+
+- name: Create postgresql user.
+  become: yes
+  user: 
+    comment: "PostgreSQL Server" 
+    createhome: yes
+    generate_ssh_key: yes
+    group: "{{postgresql_groupname}}"
+    home: "{{postgresql_root_dir}}"
+    name: "{{postgresql_username}}"
+    shell: "{{postgresql_user_shell}}"
+    state: present
+    uid: "{{postgresql_userid}}"
+  register: postgres_keys
+
+- name: Adding hostkey in the know_hosts file for all of the clusters nodes
+  become: yes
+  become_user: "{{postgresql_username}}"
+  known_hosts: 
+    key:  "{{item}},{{hostvars[item].ansible_default_ipv4.address}} ecdsa-sha2-nistp256 {{hostvars[item].ansible_ssh_host_key_ecdsa_public}}"
+    name: "{{item}}"
+  with_items:  "{{groups.cluster_ha}}"
+
+- name: Adding public keys in the authorized_keys for all of the clusters nodes
+  become: yes
+  authorized_key: 
+    key: "{{hostvars[item].postgres_keys.ssh_public_key}}" 
+    state: present
+    user: "{{postgresql_username}}"
+  with_items:  "{{groups.cluster_ha}}"
+
+- name: SELinux change for .ssh
+  become: yes
+  file: 
+    path: "{{postgresql_root_dir}}/.ssh"
+    recurse:  true
+    selevel: "s0"
+    serole: "object_r" 
+    setype: "ssh_home_t"
+    seuser: "system_u"
+    state: directory 
+
+- name: Generate the bash_profile 
+  become: yes
+  template: 
+    backup: yes 
+    dest: "{{postgresql_root_dir}}/.bash_profile"
+    group: "{{postgresql_groupname}}"
+    mode: "0750" 
+    owner: "{{postgresql_username}}"
+    src: "bash_profile.j2"
+    validate: bash -n %s
+
+- name: "Ensure limits are well setted for the {{postgresql_username}}."
+  become: yes
+  pam_limits: 
+    backup: yes
+    domain: "{{postgresql_username}}"
+    limit_item: "{{ item.limit_name }}"
+    limit_type: "-"
+    value: "{{ item.value }}"
+  with_items:
+    - {limit_name: 'fsize', value: 'unlimited'}
+    - {limit_name: 'cpu', value: 'unlimited'}
+    - {limit_name: 'nofile', value: '65536'}
+    - {limit_name: 'nproc', value: '65536'}

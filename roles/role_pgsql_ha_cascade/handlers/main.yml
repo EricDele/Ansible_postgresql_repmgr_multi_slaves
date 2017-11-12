@@ -1,0 +1,10 @@
+---
+
+- name: reload sshd
+  become: yes
+  service: 
+    name: sshd
+    state: restart
+  listen: "reload sshd"
+
+  

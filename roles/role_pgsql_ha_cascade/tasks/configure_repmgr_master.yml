@@ -1,0 +1,45 @@
+---
+
+- block:
+  - name: Create the repmgr user in the instance.
+    become: yes
+    become_user: "{{postgresql_username}}"
+    postgresql_user: 
+      port: "{{ postgresql_port }}"
+      login_password: "{{ postgresql_password }}"
+      name: "{{ postgresql_repmgr_user }}"
+      password: "{{ postgresql_repmgr_password }}"
+      role_attr_flags: "LOGIN,SUPERUSER"
+      fail_on_user: no
+      state: present
+
+  - name: Create the Repmgr database.
+    become: yes
+    become_user: "{{postgresql_username}}"
+    postgresql_db: 
+      port: "{{ postgresql_port }}"
+      login_password: "{{ postgresql_password }}"
+      name: "{{ postgresql_repmgr_dbname }}"
+      owner: "{{ postgresql_repmgr_user }}"
+      state: present
+
+  - name: Modify search_patch.
+    action: shell /usr/pgsql-{{ postgresql_version }}/bin/psql -p {{ postgresql_port }} -d {{ postgresql_repmgr_dbname }} -c "ALTER ROLE {{ postgresql_repmgr_user }} SET search_path TO repmgr_{{ postgresql_instance_name }}, public;"      
+
+  - name: Generate the Repmgr.conf file on the Master.
+    become: yes
+    become_user: root
+    template: 
+      backup: yes  
+      dest: "{{ postgresql_repmgr_conf_file }}"
+      owner: "{{postgresql_username}}"
+      group: "{{postgresql_groupname}}"
+      mode:  0644
+      src:  repmgr.conf.j2
+
+  - name: Register the Master in the cluster with Repmgr.
+    action: shell /usr/pgsql-{{ postgresql_version }}/bin/repmgr -f "{{ postgresql_repmgr_conf_file }}" master register
+
+  become: yes
+  become_user: "{{postgresql_username}}"
+  when: "'cluster_ha_master' in group_names"

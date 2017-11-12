@@ -1,0 +1,169 @@
+---
+
+- name: Generate the pgpass file.
+  become: yes
+  template: 
+    dest: "{{ postgresql_root_dir }}/.pgpass"
+    group:  "{{postgresql_groupname}}"
+    mode:  0600
+    owner:  "{{postgresql_username}}"
+    src:  pgpass.conf.j2
+
+- name: Check if we have a cluster already present.
+  become: yes
+  become_user: "{{postgresql_username}}"
+  stat: 
+    path: "{{ postgresql_data_dir }}/postgresql.conf"
+  register: postgresql_cluster_already_present
+
+- block:  
+  - name: Stop the instance if already present and force initdb is true.
+    become: True
+    become_user: root
+    service: 
+      name: "postgresql-{{postgresql_version}}.service"
+      state: stopped
+  
+  - name: Clear the data directory and recreate it on ALL THE NODES if postgresql_force_initdb is True
+    become: yes
+    file:
+      state: "{{ item }}"
+      path: "{{ postgresql_data_dir }}/"
+      owner: "{{postgresql_username}}"
+      group: "{{postgresql_groupname}}"
+      mode: '0700'
+    with_items:
+      - absent
+      - directory
+    register: postgresql_instance_clear_status
+
+  - name: Clear the WAL directory and recreate it on ALL THE NODES if postgresql_force_initdb is True
+    become: yes
+    file:
+      state: "{{ item }}"
+      path: "{{ postgresql_wal_dir }}/"
+      owner: "{{postgresql_username}}"
+      group: "{{postgresql_groupname}}"
+      mode: '0700'
+    with_items:
+      - absent
+      - directory
+
+  when:  
+    - postgresql_cluster_already_present.stat.exists == True
+    - postgresql_force_initdb == True
+
+- block:  
+
+  - name: Generate the postgres password file.
+    template: 
+      dest:  "{{ postgresql_root_dir }}/.postgres_pgpass"
+      owner: "{{postgresql_username}}"
+      group: "{{postgresql_groupname}}"
+      mode: 0600
+      src: postgres_pgpass.j2 
+
+  - name: Init the database on the MASTER.
+    action: shell /usr/pgsql-{{ postgresql_version }}/bin/initdb --data-checksums --pgdata={{ postgresql_data_dir }} --encoding={{ postgresql_instance_encoding }} --locale={{ postgresql_instance_locale }} --pwfile={{ postgresql_root_dir }}/.postgres_pgpass
+
+  - name: Generate the pg_hba file.
+    template: 
+      dest: "{{ postgresql_data_dir }}/pg_hba.conf"
+      owner: "{{postgresql_username}}"
+      group: "{{postgresql_groupname}}"
+      mode: 0600
+      src: pg_hba.conf.j2 
+
+  - name: Generate the postgresql.conf file.
+    template: 
+      dest: "{{ postgresql_data_dir }}/postgresql.conf"
+      owner: "{{postgresql_username}}"
+      group: "{{postgresql_groupname}}"
+      mode: 0600
+      src: postgresql.conf.j2 
+
+  - name: Generate RSA Key for SSL
+    command: openssl genrsa -out "{{ postgresql_security_dir }}/postgresql_server.key" 2048
+    args:
+      creates: "{{ postgresql_security_dir }}/postgresql_server.key"
+
+  - name: Generate CSR
+    command: openssl req -new \
+      -subj '/C={{ postgresql_ssl_certificate_CA }}/ST={{ postgresql_ssl_certificate_ST }}/L={{ postgresql_ssl_certificate_L }}/O={{ postgresql_ssl_certificate_O }}/CN={{ ansible_fqdn }}'
+      -key "{{ postgresql_security_dir }}/postgresql_server.key" \
+      -out "{{ postgresql_security_dir }}/postgresql_server_csr.pem"
+    args:
+      creates: "{{ postgresql_security_dir }}/postgresql_server_csr.pem"
+
+  - name: Generate Self-signed Certificate
+    command: openssl req -x509 -days 1825 \
+      -key "{{ postgresql_security_dir }}/postgresql_server.key" \
+      -in "{{ postgresql_security_dir }}/postgresql_server_csr.pem" \
+      -out "{{ postgresql_security_dir }}/postgresql_server.crt"
+    args:
+      creates: "{{ postgresql_security_dir }}/postgresql_server.crt"
+
+  - name: Change the permissions on the keys.
+    file: 
+      owner: "{{postgresql_username}}"
+      group: "{{postgresql_groupname}}"
+      mode: 0600 
+      path:  "{{ item }}"
+    with_items:
+      - "{{ postgresql_security_dir }}/postgresql_server.crt"
+      - "{{ postgresql_security_dir }}/postgresql_server_csr.pem"
+      - "{{ postgresql_security_dir }}/postgresql_server.key"
+
+  - name: Start the instance.
+    become: True
+    become_user: root
+    service: 
+      name: "postgresql-{{postgresql_version}}.service"
+      state: started
+
+  - name: Create the Roles.
+    postgresql_user: 
+      port: "{{ postgresql_port }}"
+      login_password: "{{ postgresql_password }}"
+      name: "{{ item.dbuser }}"
+      password: "{{ item.dbuserpwd }}"
+      role_attr_flags: "LOGIN"
+      fail_on_user: no
+      state: present
+    with_items:  
+      - "{{postgresql_databases | default([])}}"
+
+  - name: Create the databases.
+    postgresql_db: 
+      port: "{{ postgresql_port }}"
+      login_password: "{{ postgresql_password }}"
+      name: "{{ item.dbname }}"
+      encoding: "{{ item.dbencoding }}"
+      owner: "{{ item.dbuser }}"
+      state: present
+    with_items:  
+      - "{{postgresql_databases | default([])}}"
+
+  - name: Create schema and modify search_patch.
+    action: shell /usr/pgsql-{{ postgresql_version }}/bin/psql -p "{{ postgresql_port }}" -d "{{ item.dbname }}" -c "create schema {{ item.dbname }}; alter role {{ item.dbuser }} set search_path to {{ item.dbname }},public;"
+    with_items:  
+      - "{{postgresql_databases | default([])}}"
+
+  - name: Installing extension.
+    postgresql_ext: 
+      db: "{{ item.0.dbname }}"
+      port: "{{ postgresql_port }}"
+      login_password: "{{ postgresql_password }}"
+      name:  "{{ item.1 }}"
+      state: present
+    with_subelements:  
+      - "{{postgresql_databases | default([])}}"
+      - dbextensions
+      - flags:
+        skip_missing: True
+
+  become: yes
+  become_user: "{{postgresql_username}}"
+  when: ((postgresql_cluster_already_present.stat.exists == True and postgresql_instance_clear_status.changed == True) or (postgresql_cluster_already_present.stat.exists == False)) and 'cluster_ha_master' in group_names
+
+

@@ -1,0 +1,150 @@
+---
+
+- name: Check if we have a cluster already present on the Slaves.
+  become: yes
+  become_user: "{{postgresql_username}}"
+  stat: 
+    path: "{{ postgresql_data_dir }}/postgresql.conf"
+  register: postgresql_cluster_already_present
+  when: "'cluster_ha_slaves' in group_names"
+
+- block:  
+
+  - name: Stop the Slaves instance if already present and force initdb is true.
+    become: True
+    become_user: root
+    service: 
+      name: "postgresql-{{postgresql_version}}.service"
+      state: stopped
+  
+  - name: Clear the Slaves data directory and recreate it if postgresql_force_initdb is True
+    become: yes
+    file:
+      state: "{{ item }}"
+      path: "{{ postgresql_data_dir }}/"
+      owner: "{{postgresql_username}}"
+      group: "{{postgresql_groupname}}"
+      mode: '0700'
+    with_items:
+      - absent
+      - directory
+    register: postgresql_instance_clear_status
+
+  - name: Clear the Slaves WAL directory and recreate it if postgresql_force_initdb is True
+    become: yes
+    file:
+      state: "{{ item }}"
+      path: "{{ postgresql_wal_dir }}/"
+      owner: "{{postgresql_username}}"
+      group: "{{postgresql_groupname}}"
+      mode: '0700'
+    with_items:
+      - absent
+      - directory
+
+  when:  
+    - postgresql_cluster_already_present.stat.exists == True
+    - postgresql_force_initdb == True
+    - "'cluster_ha_slaves' in group_names"
+
+- block:
+
+  - name: Set fact for creation of the cluster.
+    set_fact: 
+      postgresql_cluster_creation: True
+
+  - name: Generate the Repmgr.conf file on the Slaves.
+    become: yes
+    become_user: root
+    template: 
+      backup: yes  
+      dest: "{{ postgresql_repmgr_conf_file }}"
+      owner: "{{postgresql_username}}"
+      group: "{{postgresql_groupname}}"
+      mode:  0600
+      src:  repmgr.conf.j2
+
+  - name: Generate Slaves RSA Key for SSL
+    command: openssl genrsa -out "{{ postgresql_security_dir }}/postgresql_server.key" 2048
+    args:
+      creates: "{{ postgresql_security_dir }}/postgresql_server.key"
+
+  - name: Generate Slaves CSR
+    command: openssl req -new \
+      -subj '/C={{ postgresql_ssl_certificate_CA }}/ST={{ postgresql_ssl_certificate_ST }}/L={{ postgresql_ssl_certificate_L }}/O={{ postgresql_ssl_certificate_O }}/CN={{ ansible_fqdn }}'
+      -key "{{ postgresql_security_dir }}/postgresql_server.key" \
+      -out "{{ postgresql_security_dir }}/postgresql_server_csr.pem"
+    args:
+      creates: "{{ postgresql_security_dir }}/postgresql_server_csr.pem"
+
+  - name: Generate Slaves Self-signed Certificate
+    command: openssl req -x509 -days 1825 \
+      -key "{{ postgresql_security_dir }}/postgresql_server.key" \
+      -in "{{ postgresql_security_dir }}/postgresql_server_csr.pem" \
+      -out "{{ postgresql_security_dir }}/postgresql_server.crt"
+    args:
+      creates: "{{ postgresql_security_dir }}/postgresql_server.crt"
+
+  - name: Change on Slaves the permissions on the keys.
+    file: 
+      owner: "{{postgresql_username}}"
+      group: "{{postgresql_groupname}}"
+      mode: 0600 
+      path:  "{{ item }}"
+    with_items:
+      - "{{ postgresql_security_dir }}/postgresql_server.crt"
+      - "{{ postgresql_security_dir }}/postgresql_server_csr.pem"
+      - "{{ postgresql_security_dir }}/postgresql_server.key"
+
+  - name: Cloning the Master to the slaves with Repmgr.
+    action: shell /usr/pgsql-{{ postgresql_version }}/bin/repmgr  -f {{ postgresql_repmgr_conf_file }} \
+                                                                  -d 'host={{ hostvars[groups['cluster_ha_master'][0]]['ansible_hostname'] }} dbname={{ postgresql_repmgr_dbname }} user={{ postgresql_repmgr_user }} port={{ postgresql_port }} sslmode=require password={{ postgresql_repmgr_password }}' \
+                                                                  -D {{ postgresql_data_dir }} \
+                                                                  -f {{ postgresql_repmgr_conf_file }} \
+                                                                  standby clone
+
+  - name: ReGenerate the pg_hba file on the Slaves.
+    template: 
+      dest: "{{ postgresql_data_dir }}/pg_hba.conf"
+      owner: "{{postgresql_username}}"
+      group: "{{postgresql_groupname}}"
+      mode: 0600
+      src: pg_hba.conf.j2 
+
+  - name: ReGenerate the postgresql.conf file on the Slaves.
+    template: 
+      dest: "{{ postgresql_data_dir }}/postgresql.conf"
+      owner: "{{postgresql_username}}"
+      group: "{{postgresql_groupname}}"
+      mode: 0600
+      src: postgresql.conf.j2 
+
+  - name: Set fact after creation of the cluster.
+    set_fact: 
+      postgresql_cluster_creation: False
+
+  - name: ReGenerate the Repmgr.conf file on the Slaves for setting the right upstream_node instead off Master.
+    become: yes
+    become_user: root
+    template: 
+      backup: yes  
+      dest: "{{ postgresql_repmgr_conf_file }}"
+      owner: "{{postgresql_username}}"
+      group: "{{postgresql_groupname}}"
+      mode:  0600
+      src:  repmgr.conf.j2
+
+  - name: Start the Slaves instance.
+    become: True
+    become_user: root
+    service: 
+      name: "postgresql-{{postgresql_version}}.service"
+      state: started
+
+  - name: Register the Slaves in the cluster with Repmgr.
+    action: shell /usr/pgsql-{{ postgresql_version }}/bin/repmgr -f "{{ postgresql_repmgr_conf_file }}" standby register
+
+  become: yes
+  become_user: "{{postgresql_username}}"
+  when: "'cluster_ha_slaves' in group_names"
+

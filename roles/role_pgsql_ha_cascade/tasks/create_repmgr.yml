@@ -1,0 +1,36 @@
+---
+
+- name: Installing Repmgr binaries
+  become: yes
+  yum: 
+    name: "repmgr{{postgresql_version|replace('.','')}}"  
+    state: latest
+
+- name: Create the directories for shell, sql and logs.
+  become: yes
+  file: 
+    owner: "{{postgresql_username}}"
+    group: "{{postgresql_groupname}}"
+    mode: '0750'
+    path:  "{{ item }}"
+    state:  directory
+  with_items:
+    - "{{postgresql_repmgr_sql_dir}}"
+    - "{{postgresql_repmgr_sh_dir}}"
+    - "{{postgresql_repmgr_log_dir}}"
+
+- name: Deploying Repmgr Sql scripts.
+  become: yes
+  become_user: "{{postgresql_username}}"
+  template: 
+    dest: "{{postgresql_repmgr_sql_dir}}/{{ item  | regex_replace('^(.*)\\.j2$', '\\1')}}"
+    owner: "{{postgresql_username}}"
+    group: "{{postgresql_groupname}}"
+    mode: '0640'
+    src:  "{{ item }}"
+  with_items:
+    - repmgr_request_master_active.sql.j2
+    - repmgr_request_master_not_active.sql.j2
+    - repmgr_request_master.sql.j2
+    - repmgr_request_standby.sql.j2
+  

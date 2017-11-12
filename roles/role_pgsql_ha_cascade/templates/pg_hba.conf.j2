@@ -1,0 +1,13 @@
+# Type      Database        User        Address     Methode
+local       all             postgres                peer
+local       replication     repmgr                  trust
+local       repmgr          repmgr                  trust
+local       all             all                     md5
+{%for host in groups['cluster_ha']%}
+{%if host != ansible_hostname%}
+hostssl     replication     repmgr      {{hostvars[host]['ansible_default_ipv4']['address']}}/32    trust
+{%endif%}
+{%endfor%}
+hostssl     repmgr          repmgr      {{ansible_default_ipv4.address}}/32     trust
+hostssl     all             all         {{ ansible_default_ipv4.address.split('.')[0:3] | join('.')}}.0/24   md5
+
