@@ -43,9 +43,9 @@
       - directory
 
   when:  
+    - "'cluster_ha_slaves' in group_names" 
     - postgresql_cluster_already_present.stat.exists == True
     - postgresql_force_initdb == True
-    - "'cluster_ha_slaves' in group_names"
 
 - block:
 
@@ -142,7 +142,7 @@
       state: started
 
   - name: Register the Slaves in the cluster with Repmgr.
-    action: shell /usr/pgsql-{{ postgresql_version }}/bin/repmgr -f "{{ postgresql_repmgr_conf_file }}" standby register
+    action: shell /usr/pgsql-{{ postgresql_version }}/bin/repmgr -F -f {{ postgresql_repmgr_conf_file }} standby register
 
   become: yes
   become_user: "{{postgresql_username}}"
