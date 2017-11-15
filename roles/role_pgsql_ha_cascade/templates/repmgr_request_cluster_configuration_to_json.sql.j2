@@ -1,0 +1,1 @@
+select to_json(array_agg(req)) from (select id,type,upstream_node_id,cluster,name,slot_name,priority,active from repmgr_{{ postgresql_instance_name }}.repl_nodes order by id) req;

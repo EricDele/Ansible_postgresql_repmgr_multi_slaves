@@ -1,1 +1,1 @@
-select id,name from repmgr_{{ postgresql_instance_name }}.repl_nodes where type='master' and active='f';
+select id,name from repmgr_{{ postgresql_instance_name }}.repl_nodes where type='master' and active='f' order by id;

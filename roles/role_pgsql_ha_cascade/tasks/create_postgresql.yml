@@ -1,15 +1,16 @@
 ---
 
 # - name: Check requested variables.
-#   assert: { that: " {{item}} is defined" }
+#   assert: 
+#     that: " {{item}} is defined"
 #   with_items:
-#     - postgresql_version_supported
-#     - postgresql_version
-#     - postgresql_repos
-#     - postgresql_package_name_prefix
-#     - postgresql_package_name_suffix_list
-#     - postgresql_package_name_specific_list
-#     - postgresql_directories
+#       - postgresql_version_supported
+#       - postgresql_version
+#       - postgresql_repos
+#       - postgresql_package_name_prefix
+#       - postgresql_package_name_suffix_list
+#       - postgresql_package_name_specific_list
+#       - postgresql_directories
 
 - name: check supported version.
   fail: 
@@ -87,3 +88,27 @@
     permanent: True
     port: "{{ postgresql_port }}/tcp"
     state: enabled
+
+- name: Deploying sudoers.d template for postgres user.
+  become: yes
+  template: 
+    backup: yes
+    dest:  /etc/sudoers.d/01_postgres_user
+    group:  root
+    mode:  0440
+    owner:  root
+    src:  01_postgres_user.j2
+    validate:  /sbin/visudo -cf %s
+
+- name: Ensure that the includedir statement is present in sudoers.
+  become: yes
+  lineinfile: 
+    backup:  True
+    dest:  "/etc/sudoers"
+    group:  root
+    line:  '#includedir /etc/sudoers.d'
+    mode:  0440
+    owner:  root
+    regexp: '^#includedir /etc/sudoers.d$'
+    state:  present
+    validate: /sbin/visudo -cf %s 

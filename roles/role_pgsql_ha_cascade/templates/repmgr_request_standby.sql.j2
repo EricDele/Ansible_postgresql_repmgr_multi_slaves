@@ -1,1 +1,1 @@
-select id,name from repmgr_{{ postgresql_instance_name }}.repl_nodes where type='standby';
+select id,type,upstream_node_id,cluster,name,slot_name,priority,active from repmgr_{{ postgresql_instance_name }}.repl_nodes where type='standby' order by id;

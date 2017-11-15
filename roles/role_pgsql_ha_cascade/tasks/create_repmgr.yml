@@ -30,7 +30,12 @@
     src:  "{{ item }}"
   with_items:
     - repmgr_request_master_active.sql.j2
+    - repmgr_request_master_active_to_json.sql.j2    
     - repmgr_request_master_not_active.sql.j2
+    - repmgr_request_master_not_active_to_json.sql.j2
     - repmgr_request_master.sql.j2
+    - repmgr_request_master_to_json.sql.j2
     - repmgr_request_standby.sql.j2
+    - repmgr_request_standby_to_json.sql.j2
+    - repmgr_request_cluster_configuration_to_json.sql.j2
   

@@ -1,0 +1,1 @@
+select to_json(array_agg(req)) from (select id,name from repmgr_{{ postgresql_instance_name }}.repl_nodes where type='master' order by id) req;

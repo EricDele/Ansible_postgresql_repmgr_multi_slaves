@@ -144,7 +144,7 @@ service_start_command = sudo /usr/bin/systemctl start postgresql-9.5
 service_stop_command = sudo /usr/bin/systemctl stop postgresql-9.5
 service_restart_command = sudo /usr/bin/systemctl restart postgresql-9.5
 service_reload_command = sudo /usr/bin/systemctl reload postgresql-9.5
-service_promote_command = /usr/pgsql-9.5/bin/pg_ctl -D /var/lib/pgsql/9.5/data-standby promote
+service_promote_command = /usr/pgsql-9.5/bin/pg_ctl -D {{ postgresql_data_dir }} promote
 
 # external command options
 

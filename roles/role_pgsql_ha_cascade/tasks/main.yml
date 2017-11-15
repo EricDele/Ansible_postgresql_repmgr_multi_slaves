@@ -24,4 +24,7 @@
   include: configure_repmgr_slaves.yml
   tags: [postgresql_configure_repmgr_slaves]
 
+- name: Switchover to a standby node
+  include: switchover_to_standby_node.yml
+  tags: [postgresql_switchover_to_standby_node]
 

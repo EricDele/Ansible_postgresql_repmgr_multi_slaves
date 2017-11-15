@@ -1,0 +1,9 @@
+Defaults:postgres !requiretty
+postgres ALL = NOPASSWD: /usr/bin/systemctl start postgresql-{{postgresql_version}},  \
+                           /usr/bin/systemctl status postgresql-{{postgresql_version}}, \
+                           /usr/bin/systemctl stop postgresql-{{postgresql_version}},   \
+                           /usr/bin/systemctl reload postgresql-{{postgresql_version}}, \
+                           /usr/bin/systemctl restart postgresql-{{postgresql_version}}, \
+                           /usr/sbin/ifdown *, \
+                           /usr/sbin/ifup *
+                           

@@ -1,0 +1,53 @@
+---
+
+- name: Ensure the vars are defined.
+  assert: 
+    that:  "{{ item }} is defined" 
+  with_items:
+      - postgresql_standby_node_for_switchover
+
+- block:
+
+  - name: Search standby nodes by requesting Repmgr database.
+    action: shell /usr/pgsql-{{ postgresql_version }}/bin/psql -p {{ postgresql_port }} -U {{ postgresql_repmgr_user }} -d {{ postgresql_repmgr_dbname }} --no-align --tuples-only -f {{ postgresql_repmgr_sql_dir }}/repmgr_request_standby_to_json.sql
+    register: postgresql_repmgr_standby_nodes_output
+
+  - name: Set result for matching the desired node {{postgresql_standby_node_for_switchover}} and ansure that this node is active.
+    set_fact: 
+      postgresql_standby_node_for_switchover_status:  "{{postgresql_repmgr_standby_nodes_output.stdout|from_json|json_query(my_query)}}"
+    vars:
+      my_query: "[?name=='{{postgresql_standby_node_for_switchover}}' && active].{name: name, active: active}"  
+
+  - name: Actual cluster configuration of standby nodes.
+    debug: 
+      var: postgresql_repmgr_standby_nodes_output.stdout|from_json
+
+  - name: Test if the desired node {{postgresql_standby_node_for_switchover}} is elligible to a switchover.
+    fail: 
+      msg: "The node {{postgresql_standby_node_for_switchover}} is not elligible to a switchover as this is not a standby or is not currently active, please check the previous Task for Actual cluster configuration of standby nodes."
+    when:  postgresql_standby_node_for_switchover_status[0] is not defined
+
+  - name: Request the actual configuration of the Cluster.
+    action: shell /usr/pgsql-{{ postgresql_version }}/bin/psql -p {{ postgresql_port }} -U {{ postgresql_repmgr_user }} -d {{ postgresql_repmgr_dbname }} --no-align --tuples-only -f {{ postgresql_repmgr_sql_dir }}/repmgr_request_cluster_configuration_to_json.sql
+    register: postgresql_repmgr_cluster_configuration_output
+
+  - name: Actual cluster configuration.
+    debug: 
+      var: postgresql_repmgr_cluster_configuration_output.stdout|from_json
+
+  - name: Switchover the Standby node {{postgresql_standby_node_for_switchover}} to become the new Master with Repmgr.
+    action: shell /usr/pgsql-{{ postgresql_version }}/bin/repmgr  -f {{ postgresql_repmgr_conf_file }} -C {{ postgresql_repmgr_conf_file }} -v --log-to-file --log-level INFO standby switchover
+    register: postgresql_repmgr_switchover_status
+
+  - name: Request the new configuration of the Cluster after the switchover.
+    action: shell /usr/pgsql-{{ postgresql_version }}/bin/psql -p {{ postgresql_port }} -U {{ postgresql_repmgr_user }} -d {{ postgresql_repmgr_dbname }} --no-align --tuples-only -f {{ postgresql_repmgr_sql_dir }}/repmgr_request_cluster_configuration_to_json.sql
+    register: postgresql_repmgr_cluster_configuration_output
+
+  - name: New cluster configuration after the switchover.
+    debug: 
+      var: postgresql_repmgr_cluster_configuration_output.stdout|from_json
+
+
+  become: yes
+  become_user: "{{postgresql_username}}"
+  when: ansible_hostname == postgresql_standby_node_for_switchover
