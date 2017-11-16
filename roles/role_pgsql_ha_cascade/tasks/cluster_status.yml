@@ -1,0 +1,25 @@
+---
+
+- name: Ensure the vars are defined.
+  assert: 
+    that:  "{{ item }} is defined" 
+  with_items:
+      - postgresql_version
+      - postgresql_port
+      - postgresql_repmgr_user
+      - postgresql_repmgr_dbname
+      - postgresql_repmgr_sql_dir
+
+- block:
+
+  - name: Request the actual configuration of the Cluster.
+    action: shell /usr/pgsql-{{ postgresql_version }}/bin/psql -p {{ postgresql_port }} -U {{ postgresql_repmgr_user }} -d {{ postgresql_repmgr_dbname }} --no-align --tuples-only -f {{ postgresql_repmgr_sql_dir }}/repmgr_request_cluster_configuration_to_json.sql
+    register: postgresql_repmgr_cluster_configuration_output
+
+  - name: Actual cluster configuration.
+    debug: 
+      var: postgresql_repmgr_cluster_configuration_output.stdout|from_json
+
+  become: yes
+  become_user: "{{postgresql_username}}"
+  when: "'cluster_ha_master' in group_names"

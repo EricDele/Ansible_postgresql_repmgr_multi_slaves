@@ -1,0 +1,14 @@
+---
+
+- name: Ensure the vars are defined.
+  assert: 
+    that:  "{{ item }} is defined" 
+  with_items:
+      - postgresql_version
+
+- name: Start the cluster.
+  become: True
+  become_user: root
+  service: 
+    name: "postgresql-{{postgresql_version}}.service"
+    state: started

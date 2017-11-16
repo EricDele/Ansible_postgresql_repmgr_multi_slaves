@@ -5,6 +5,12 @@
     that:  "{{ item }} is defined" 
   with_items:
       - postgresql_standby_node_for_switchover
+      - postgresql_version
+      - postgresql_port
+      - postgresql_repmgr_user
+      - postgresql_repmgr_dbname
+      - postgresql_repmgr_sql_dir
+      - postgresql_repmgr_conf_file
 
 - block:
 

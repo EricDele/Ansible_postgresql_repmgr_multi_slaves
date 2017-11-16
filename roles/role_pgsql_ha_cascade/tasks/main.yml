@@ -28,3 +28,20 @@
   include: switchover_to_standby_node.yml
   tags: [postgresql_switchover_to_standby_node]
 
+- name: Status of the cluster
+  include: cluster_status.yml
+  tags: [postgresql_cluster_status]
+
+- name: Start of the cluster
+  include: cluster_start.yml
+  tags: [postgresql_cluster_start]
+
+- name: Stop of the cluster
+  include: cluster_stop.yml
+  tags: [postgresql_cluster_stop]
+
+# Todo:
+# failover
+# repmgrd
+# ip virtuelle
+
