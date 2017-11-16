@@ -12,6 +12,11 @@
       - postgresql_repmgr_sql_dir
       - postgresql_repmgr_conf_file
 
+- name: Stop Repmgrd before switching if running
+  include: cluster_repmgrd_stop.yml
+  register: repmgrd_stop_status
+  ignore_errors: yes
+
 - block:
 
   - name: Search standby nodes by requesting Repmgr database.
@@ -53,7 +58,10 @@
     debug: 
       var: postgresql_repmgr_cluster_configuration_output.stdout|from_json
 
-
   become: yes
   become_user: "{{postgresql_username}}"
   when: ansible_hostname == postgresql_standby_node_for_switchover
+
+- name: Start Repmgrd after switching if running before
+  include: cluster_repmgrd_start.yml
+  when: postgresql_repmgr_pid_file_stat.stat.exists is defined

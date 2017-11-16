@@ -1,0 +1,14 @@
+---
+
+- name: Ensure the vars are defined.
+  assert: 
+    that:  "{{ item }} is defined" 
+  with_items:
+      - postgresql_version
+      - postgresql_username
+      - postgresql_repmgr_conf_file
+
+- name: Start Repmgrd.
+  become: True
+  become_user: "{{postgresql_username}}"
+  action: shell /usr/pgsql-{{ postgresql_version }}/bin/repmgrd  -f {{ postgresql_repmgr_conf_file }} --monitoring-history --daemonize --pid-file={{ postgresql_repmgr_pid_dir }}/repmgrd.pid

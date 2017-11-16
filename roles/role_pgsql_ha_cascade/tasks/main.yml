@@ -40,6 +40,25 @@
   include: cluster_stop.yml
   tags: [postgresql_cluster_stop]
 
+- name: Status Repmgrd
+  include: cluster_repmgrd_status.yml
+  tags: [postgresql_cluster_repmgrd_status]
+
+- name: Start Repmgrd
+  include: cluster_repmgrd_start.yml
+  tags: [postgresql_cluster_repmgrd_start]
+
+- name: Stop Repmgrd
+  include: cluster_repmgrd_stop.yml
+  register: stoprepmgrd
+  tags: [postgresql_cluster_repmgrd_stop]
+
+- name: Name for debug module.
+  debug: 
+    var: stoprepmgrd
+  tags: [postgresql_cluster_repmgrd_stop]
+
+
 # Todo:
 # failover
 # repmgrd

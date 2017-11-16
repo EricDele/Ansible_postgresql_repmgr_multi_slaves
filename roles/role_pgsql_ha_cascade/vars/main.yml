@@ -24,6 +24,7 @@ postgresql_repmgr_sql_dir: "{{postgresql_bases_dir}}/{{postgresql_instance_name}
 postgresql_repmgr_sh_dir: "{{postgresql_bases_dir}}/{{postgresql_instance_name}}/repmgr/sh"
 postgresql_repmgr_log_dir: "/var/log/repmgr"
 postgresql_repmgr_conf_file: "/etc/repmgr/{{ postgresql_version }}/repmgr.conf"
+postgresql_repmgr_pid_dir: "/run/repmgr"
 postgresql_repmgr_dbname: "repmgr"
 postgresql_repmgr_user: "repmgr"
 

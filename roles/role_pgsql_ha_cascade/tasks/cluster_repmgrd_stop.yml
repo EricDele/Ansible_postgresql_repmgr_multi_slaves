@@ -1,0 +1,48 @@
+---
+
+- name: Ensure the vars are defined.
+  assert: 
+    that:  "{{ item }} is defined" 
+  with_items:
+      - postgresql_version
+      - postgresql_username
+      - postgresql_repmgr_conf_file
+
+- name: "check if we have a Repmgrd pid file : {{ postgresql_repmgr_pid_dir }}/repmgrd.pid."
+  become: True
+  become_user: "{{postgresql_username}}"
+  stat: 
+    path: "{{ postgresql_repmgr_pid_dir }}/repmgrd.pid"
+  register: postgresql_repmgr_pid_file_stat
+
+- block:
+  - name: Get the repmgrd pid.
+    become: True
+    become_user: "{{postgresql_username}}"
+    slurp: 
+      src: "{{ postgresql_repmgr_pid_dir }}/repmgrd.pid"
+    register: postgresql_repmgrd_pid
+
+  - name: Check if the process Repmgrd is running.
+    shell: ps -fu{{postgresql_username}}|egrep "{{postgresql_username}}[ ]+{{ postgresql_repmgrd_pid['content'] | b64decode }}"
+    register: postgresql_repgrd_process_check
+
+  - name: Repmgrd process is runningg.
+    debug: 
+      msg: "Repmgrd => {{postgresql_repgrd_process_check.stdout}}"
+
+  - name: Kill Repmgrd running process
+    become: True
+    become_user: "{{postgresql_username}}"
+    shell: kill {{ postgresql_repmgrd_pid['content'] | b64decode }}
+
+  - name: Wait for Repmgrd process ending
+    become: True
+    become_user: "{{postgresql_username}}"
+    wait_for:
+      path: "/proc/{{ postgresql_repmgrd_pid['content'] | b64decode }}/status"
+      state: absent
+    ignore_errors: yes
+    register: killed_processes
+
+  when: postgresql_repmgr_pid_file_stat.stat.exists is defined 

@@ -1,0 +1,24 @@
+---
+
+- name: Ensure the vars are defined.
+  assert: 
+    that:  "{{ item }} is defined" 
+  with_items:
+      - postgresql_version
+      - postgresql_username
+      - postgresql_repmgr_conf_file
+
+- name: Get the repmgrd pid.
+  become: True
+  become_user: "{{postgresql_username}}"
+  slurp: 
+    src: "{{ postgresql_repmgr_pid_dir }}/repmgrd.pid"
+  register: postgresql_repmgrd_pid
+
+- name: Check if the process Repmgrd is running.
+  shell: ps -fu{{postgresql_username}}|egrep "{{postgresql_username}}[ ]+{{ postgresql_repmgrd_pid['content'] | b64decode }}"
+  register: postgresql_repgrd_process_check
+
+- name: Repmgrd process is runningg.
+  debug: 
+    msg: "Repmgrd => {{postgresql_repgrd_process_check.stdout}}"

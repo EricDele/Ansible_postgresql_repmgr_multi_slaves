@@ -18,6 +18,7 @@
     - "{{postgresql_repmgr_sql_dir}}"
     - "{{postgresql_repmgr_sh_dir}}"
     - "{{postgresql_repmgr_log_dir}}"
+    - "{{postgresql_repmgr_pid_dir}}"
 
 - name: Deploying Repmgr Sql scripts.
   become: yes
