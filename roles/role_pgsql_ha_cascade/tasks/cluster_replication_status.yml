@@ -1,0 +1,24 @@
+---
+
+- name: Ensure the vars are defined.
+  assert: 
+    that:  "{{ item }} is defined" 
+  with_items:
+      - postgresql_version
+      - postgresql_port
+      - postgresql_repmgr_user
+      - postgresql_repmgr_dbname
+      - postgresql_repmgr_sql_dir
+
+
+- name: Get the replication status by requesting Repmgr database.
+  become: yes
+  become_user: "{{postgresql_username}}"
+  action: shell /usr/pgsql-{{ postgresql_version }}/bin/psql -p {{ postgresql_port }} -U {{ postgresql_repmgr_user }} -d {{ postgresql_repmgr_dbname }} --no-align --tuples-only -f {{ postgresql_repmgr_sql_dir }}/repmgr_request_status_to_json.sql
+  register: postgresql_repmgr_replication_status_output
+  when: "'cluster_ha_master' in group_names"
+
+- name: Actual cluster replication status
+  debug: 
+    var: postgresql_repmgr_replication_status_output.stdout|from_json
+  when: "'cluster_ha_master' in group_names"

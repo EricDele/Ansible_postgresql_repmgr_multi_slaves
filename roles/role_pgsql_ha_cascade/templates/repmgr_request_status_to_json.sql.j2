@@ -1,0 +1,1 @@
+select to_json(array_agg(req)) from (select primary_node,standby_node,standby_name,node_type,active,last_monitor_time,last_wal_primary_location,last_wal_standby_location,replication_lag,replication_time_lag,apply_lag,communication_time_lag from repmgr_{{ postgresql_instance_name }}.repl_status order by standby_node) req;

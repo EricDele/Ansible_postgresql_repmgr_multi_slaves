@@ -50,17 +50,14 @@
 
 - name: Stop Repmgrd
   include: cluster_repmgrd_stop.yml
-  register: stoprepmgrd
   tags: [postgresql_cluster_repmgrd_stop]
 
-- name: Name for debug module.
-  debug: 
-    var: stoprepmgrd
-  tags: [postgresql_cluster_repmgrd_stop]
+- name: Status of the cluster replication
+  include: cluster_replication_status.yml
+  tags: [postgresql_cluster_replication_status]
 
 
 # Todo:
 # failover
-# repmgrd
 # ip virtuelle
 

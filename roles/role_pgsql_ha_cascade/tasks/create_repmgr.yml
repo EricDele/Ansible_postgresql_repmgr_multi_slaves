@@ -39,4 +39,5 @@
     - repmgr_request_standby.sql.j2
     - repmgr_request_standby_to_json.sql.j2
     - repmgr_request_cluster_configuration_to_json.sql.j2
-  
+    - repmgr_request_status_to_json.sql.j2
+    - repmgr_request_status.sql.j2  

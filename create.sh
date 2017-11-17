@@ -39,9 +39,11 @@
 # Cluster Repmgrd Daemon start
 #ansible-playbook -i inventory/inventory.yml --tags "postgresql_cluster_repmgrd_start" --user=edele postgresql_ha_cascade.yml
 
-# Cluster Repmgrd Daemon start
+# Cluster Repmgrd Daemon status
 #ansible-playbook -i inventory/inventory.yml --tags "postgresql_cluster_repmgrd_status" --user=edele postgresql_ha_cascade.yml
 
 # Cluster Repmgrd Daemon stop
 #ansible-playbook -i inventory/inventory.yml --tags "postgresql_cluster_repmgrd_stop" --user=edele postgresql_ha_cascade.yml
 
+# Cluster replication status
+ansible-playbook -i inventory/inventory.yml --tags "postgresql_cluster_replication_status" --user=edele postgresql_ha_cascade.yml
