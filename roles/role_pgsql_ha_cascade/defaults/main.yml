@@ -1,5 +1,7 @@
 ---
 
+## Postgresql configuration
+# Version to install
 postgresql_version: "9.5"
 postgresql_port: "5432"
 postgresql_max_connections: "100"
@@ -9,33 +11,43 @@ postgresql_wal_keep_segments: "5"
 postgresql_max_replication_slots: "{{ groups['cluster_ha'] | length }}"
 postgresql_max_wal_senders: "15"
 
+## Cluster configuration
 postgresql_instance_name: "cascade"
 postgresql_instance_encoding: "UTF8"
 postgresql_instance_locale: "fr_FR.UTF8"
 postgresql_password: "pgpwdToChange"
-#postgresql_extensions: "plpgsql,pg_stat_statements,sslinfo"
+
+## Databases to create 
 postgresql_databases:
   - { dbname: "test1", dbuser: "test1", dbuserpwd: "pwdToChange", dbencoding: "UTF8", dbextensions: ["plpgsql","pg_stat_statements","sslinfo"]}
   - { dbname: "test2", dbuser: "testother", dbuserpwd: "pwdToChange", dbencoding: "UTF8", dbextensions: ["plpgsql","pg_stat_statements","sslinfo"]}
   - { dbname: "test3", dbuser: "test3", dbuserpwd: "pwdToChange", dbencoding: "UTF8", dbextensions: ["plpgsql","pg_stat_statements","sslinfo"]}  
 
-# This parameter is to force the initdb even if an instance is already present, use it carrefully
+## This parameter is to force the initdb even if an instance is already present, use it carrefully, it will erase all the Cluster
 postgresql_force_initdb: True
 
+## Certificate data
 postgresql_ssl_certificate_CA: "fr"
 postgresql_ssl_certificate_ST: "Seine et Marne"
 postgresql_ssl_certificate_L: "Melun"
 postgresql_ssl_certificate_O: "Eric"
 postgresql_ssl_certificate_CN: ""
 
+## Repmgr configuration
 postgresql_repmgr_password: "RepMgrPwd!"
 postgresql_repmgr_monitor_interval_secs: "30"
 postgresql_repmgr_master_response_timeout: "30"
 postgresql_repmgr_reconnect_attempts: "3"
 postgresql_repmgr_reconnect_interval: "5"
 
+## Topology of the Cluster
+# node: hostname
+# node_num: number of the node
+# upstream_node: hostname of the upstream node for this node
+# upstream_node_num: number of the upstream node for this node
+# upstream_node_num_for_creation: number of the upstream node for cloning the slave, here the Master but could be a slave
 postgresql_cluster_config:
   - { node: "vm1", node_num: "1", upstream_node: "",    upstream_node_num: "",  upstream_node_num_for_creation: ""}
   - { node: "vm2", node_num: "2", upstream_node: "vm1", upstream_node_num: "1", upstream_node_num_for_creation: "1"}
   - { node: "vm3", node_num: "3", upstream_node: "vm2", upstream_node_num: "2", upstream_node_num_for_creation: "1"}  
-  - { node: "vm4", node_num: "4", upstream_node: "vm3", upstream_node_num: "3", upstream_node_num_for_creation: "1"}  
+  - { node: "vm4", node_num: "4", upstream_node: "vm3", upstream_node_num: "3", upstream_node_num_for_creation: "1"} 

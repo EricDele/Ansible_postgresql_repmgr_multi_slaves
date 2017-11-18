@@ -89,26 +89,3 @@
     port: "{{ postgresql_port }}/tcp"
     state: enabled
 
-- name: Deploying sudoers.d template for postgres user.
-  become: yes
-  template: 
-    backup: yes
-    dest:  /etc/sudoers.d/01_postgres_user
-    group:  root
-    mode:  0440
-    owner:  root
-    src:  01_postgres_user.j2
-    validate:  /sbin/visudo -cf %s
-
-- name: Ensure that the includedir statement is present in sudoers.
-  become: yes
-  lineinfile: 
-    backup:  True
-    dest:  "/etc/sudoers"
-    group:  root
-    line:  '#includedir /etc/sudoers.d'
-    mode:  0440
-    owner:  root
-    regexp: '^#includedir /etc/sudoers.d$'
-    state:  present
-    validate: /sbin/visudo -cf %s 
