@@ -2,59 +2,59 @@
 
 - name: Create User, Group and ssh_keys
   include: create_postgres_user.yml
-  tags: [postgresql_create_user]
+  when: state in ["postgresql_create_user"]
 
 - name: Install Postgresql instances
   include: create_postgresql.yml
-  tags: [postgresql_create_instances]
+  when: state in ["postgresql_create_instances"]
 
 - name: Install Repmgr
   include: create_repmgr.yml
-  tags: [postgresql_create_repmgr]
+  when: state in ["postgresql_create_repmgr"]
 
 - name: Configure Postgresql instances
   include: configure_postgresql.yml
-  tags: [postgresql_configure]
+  when: state in ["postgresql_configure"]
 
 - name: Configure Repmgr Master
   include: configure_repmgr_master.yml
-  tags: [postgresql_configure_repmgr_master]
+  when: state in ["postgresql_configure_repmgr_master"]
 
 - name: Configure Repmgr Slaves
   include: configure_repmgr_slaves.yml
-  tags: [postgresql_configure_repmgr_slaves]
+  when: state in ["postgresql_configure_repmgr_slaves"]
 
 - name: Switchover to a standby node
   include: switchover_to_standby_node.yml
-  tags: [postgresql_switchover_to_standby_node]
+  when: state in ["postgresql_switchover_to_standby_node"]
 
 - name: Status of the cluster
   include: cluster_status.yml
-  tags: [postgresql_cluster_status]
+  when: state in ["postgresql_cluster_status"]
 
 - name: Start of the cluster
   include: cluster_start.yml
-  tags: [postgresql_cluster_start]
+  when: state in ["postgresql_cluster_start"]
 
 - name: Stop of the cluster
   include: cluster_stop.yml
-  tags: [postgresql_cluster_stop]
+  when: state in ["postgresql_cluster_stop"]
 
 - name: Status Repmgrd
   include: cluster_repmgrd_status.yml
-  tags: [postgresql_cluster_repmgrd_status]
+  when: state in ["postgresql_cluster_repmgrd_status"]
 
 - name: Start Repmgrd
   include: cluster_repmgrd_start.yml
-  tags: [postgresql_cluster_repmgrd_start]
+  when: state in ["postgresql_cluster_repmgrd_start"]
 
 - name: Stop Repmgrd
   include: cluster_repmgrd_stop.yml
-  tags: [postgresql_cluster_repmgrd_stop]
+  when: state in ["postgresql_cluster_repmgrd_stop"]
 
 - name: Status of the cluster replication
   include: cluster_replication_status.yml
-  tags: [postgresql_cluster_replication_status]
+  when: state in ["postgresql_cluster_replication_status"]
 
 
 # Todo:
