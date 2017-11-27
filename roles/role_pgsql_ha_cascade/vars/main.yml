@@ -27,6 +27,7 @@ postgresql_repmgr_conf_file: "/etc/repmgr/{{ postgresql_version }}/repmgr.conf"
 postgresql_repmgr_pid_dir: "/run/repmgr"
 postgresql_repmgr_dbname: "repmgr"
 postgresql_repmgr_user: "repmgr"
+postgresql_shared_preload: "repmgr_funcs"
 
 postgresql_directories:
   - {path: "{{postgresql_bases_dir}}", owner: "{{postgresql_username}}", group: "{{postgresql_groupname}}", mode: "0755", state: "directory" }

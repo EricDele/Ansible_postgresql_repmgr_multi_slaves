@@ -6,7 +6,6 @@ postgresql_version: "9.5"
 postgresql_port: "5432"
 postgresql_max_connections: "100"
 postgresql_sharde_buffers: "128MB"
-prostgresql_extensions: ""
 postgresql_wal_keep_segments: "5"
 postgresql_max_replication_slots: "{{ groups['cluster_ha'] | length }}"
 postgresql_max_wal_senders: "15"
@@ -39,6 +38,9 @@ postgresql_repmgr_monitor_interval_secs: "30"
 postgresql_repmgr_master_response_timeout: "30"
 postgresql_repmgr_reconnect_attempts: "3"
 postgresql_repmgr_reconnect_interval: "5"
+postgresql_repmgr_retry_promote_interval_secs: "10"
+# Methde to use for failover, manual or automatic
+postgresql_repmgr_failover_action: "automatic" 
 
 ## Topology of the Cluster
 # node: hostname
